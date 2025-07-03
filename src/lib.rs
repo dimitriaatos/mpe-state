@@ -1,5 +1,5 @@
 #![no_std]
-use core::ops::{Bound, Range};
+use core::ops::Range;
 
 pub enum Mode {
     Mode1,
@@ -180,7 +180,7 @@ impl MPEState {
                 // Initializing only the added member channels
                 self.zone_slice_mut(
                     zone,
-                    (prev_member_channels.max(1) as usize)..=(new_member_channels as usize),
+                    (prev_member_channels.max(1) as usize)..(new_member_channels as usize + 1),
                 )
                 .fill(Channel::new_member());
                 // If another zone is enabled, checking if its channels are overlapping and decreasing them
@@ -210,7 +210,7 @@ impl MPEState {
                     // and convert all the removed member channels to conventional
                     self.zone_slice_mut(
                         zone,
-                        (new_member_channels as usize)..=(prev_member_channels as usize),
+                        (new_member_channels as usize)..(prev_member_channels as usize + 1),
                     )
                     .fill(Channel::new_conventional());
                 }
@@ -232,7 +232,7 @@ impl MPEState {
             _ => None,
         }
     }
-    pub fn zone_channel_range(&self, zone: &Zone) -> Option<(Bound<usize>, Bound<usize>)> {
+    pub fn zone_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
         match self.channels[zone.manager_index()] {
             Channel::Manager {
                 member_channels, ..
@@ -268,35 +268,14 @@ impl MPEState {
             _ => None,
         }
     }
-    fn compute_range<R>(zone: &Zone, range: R) -> (Bound<usize>, Bound<usize>)
-    where
-        R: core::ops::RangeBounds<usize>,
-    {
+    fn compute_range(zone: &Zone, range: Range<usize>) -> Range<usize> {
         let manager_index = zone.manager_index();
-        let new_start = match range.start_bound() {
-            Bound::Unbounded => Bound::Unbounded,
-            Bound::Included(&bound) => Bound::Included(bound.abs_diff(manager_index)),
-            Bound::Excluded(&bound) => Bound::Excluded((bound + 1).abs_diff(manager_index)),
-        };
-
-        let new_end = match range.end_bound() {
-            Bound::Unbounded => Bound::Unbounded,
-            Bound::Included(&bound) => Bound::Included(bound.abs_diff(manager_index)),
-            Bound::Excluded(&bound) => Bound::Excluded((bound + 1).abs_diff(manager_index)),
-        };
-
-        (new_start, new_end)
+        range.start.abs_diff(manager_index)..range.end.abs_diff(manager_index)
     }
-    pub fn zone_slice<R>(&self, zone: &Zone, range: R) -> &[Channel]
-    where
-        R: core::ops::RangeBounds<usize>,
-    {
+    pub fn zone_slice(&self, zone: &Zone, range: Range<usize>) -> &[Channel] {
         &self.channels[Self::compute_range(zone, range)]
     }
-    pub fn zone_slice_mut<R>(&mut self, zone: &Zone, range: R) -> &mut [Channel]
-    where
-        R: core::ops::RangeBounds<usize>,
-    {
+    pub fn zone_slice_mut(&mut self, zone: &Zone, range: Range<usize>) -> &mut [Channel] {
         &mut self.channels[Self::compute_range(zone, range)]
     }
     pub fn active(&self) -> bool {
