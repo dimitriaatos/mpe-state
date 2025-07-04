@@ -236,7 +236,10 @@ impl MPEState {
                 member_channels, ..
             } => {
                 let manager_offset = 1;
-                Some(manager_offset..(member_channels as usize + manager_offset))
+                Some(Self::compute_range(
+                    zone,
+                    manager_offset..(member_channels as usize + manager_offset),
+                ))
             }
             _ => None,
         }
@@ -273,7 +276,13 @@ impl MPEState {
     }
     fn compute_range(zone: &Zone, range: Range<usize>) -> Range<usize> {
         let manager_index = zone.manager_index();
-        range.start.abs_diff(manager_index)..range.end.abs_diff(manager_index)
+        let start = range.start.abs_diff(manager_index);
+        let end = range.end.abs_diff(manager_index);
+        if matches!(zone, Zone::Lower) {
+            start..end
+        } else {
+            end..start
+        }
     }
     pub fn zone_slice(&self, zone: &Zone, range: Range<usize>) -> &[Channel] {
         &self.channels[Self::compute_range(zone, range)]
