@@ -163,7 +163,7 @@ impl MPEState {
         match member_channels {
             // If the new number of member channels is zero
             0 => match self.channels[manager_index] {
-                // and the zone was enabled, set the manager and all memeber channels to conventional.
+                // and the zone was enabled, set the manager and all member channels to conventional.
                 Channel::Manager { .. } => {
                     self.zone_channels_mut(zone)
                         .unwrap()
