@@ -61,7 +61,7 @@ pub enum ChannelType {
     Conventional,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MIDIChannel {
     pitch_bend_sensitivity: u8,
     pub pitch_bend: f32,
@@ -99,7 +99,7 @@ impl MIDIChannel {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Channel {
     Manager {
         member_channels: u8,
@@ -287,7 +287,7 @@ impl MPEState {
         if matches!(zone, Zone::Lower) {
             start..end
         } else {
-            end..start
+            (end + 1)..(start + 1)
         }
     }
     pub fn zone_slice(&self, zone: &Zone, range: Range<usize>) -> &[Channel] {
