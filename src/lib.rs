@@ -198,9 +198,15 @@ impl MPEState {
                     member_channels, ..
                 } = &mut self.channels[zone.get_other().manager_index()]
                 {
-                    let remaining_channels = 16 - zone_channels;
-                    if other_zone_channels > remaining_channels {
-                        *member_channels = remaining_channels as u8 - 1;
+                    match 16 - zone_channels {
+                        1 => {
+                            self.channels[zone.get_other().manager_index()] =
+                                Channel::new_conventional();
+                        }
+                        remaining_channels if other_zone_channels > remaining_channels => {
+                            *member_channels = remaining_channels as u8 - 1;
+                        }
+                        _ => {}
                     }
                 }
             }
