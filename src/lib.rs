@@ -145,7 +145,12 @@ impl Default for MPEState {
 }
 
 impl MPEState {
-    pub fn comfig(&mut self, zone: &Zone, member_channels: u8) {
+    pub fn new() -> Self {
+        Self {
+            channels: core::array::from_fn(|_| Channel::new_conventional()),
+        }
+    }
+    pub fn config(&mut self, zone: &Zone, member_channels: u8) {
         let manager_index = zone.manager_index();
 
         let prev_member_channels: u8 = match self.channels[manager_index] {
