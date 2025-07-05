@@ -1,3 +1,5 @@
+//! # mpe-state - State management for MIDI Polyphonic Expression
+
 #![no_std]
 use core::ops::Range;
 
@@ -115,9 +117,13 @@ impl Default for MPEState {
 }
 
 impl MPEState {
+	/// Creates a new instance of MPEState.
+	/// MPE status is disabled and all channels are set to conventional.
 	pub fn new() -> Self {
 		Self { channels: core::array::from_fn(|_| Channel::new_conventional()) }
 	}
+	/// Configures the member channels of an MPE zone.
+	/// Zero member channels disable the zone.
 	pub fn config(&mut self, zone: &Zone, member_channels: u8) {
 		let manager_index = zone.manager_channel();
 
@@ -192,12 +198,15 @@ impl MPEState {
 			_ => {},
 		};
 	}
+	/// Returns the status of MPE mode
 	pub fn active(&self) -> bool {
 		matches!(self.channels.first().unwrap(), Channel::Manager { .. })
 			|| matches!(self.channels.last().unwrap(), Channel::Manager { .. })
 	}
 
 	// Zone methods
+
+	/// Returns a range containing the indexes of a given zone's member channels.
 	pub fn zone_member_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
 		match self.channels[zone.manager_channel()] {
 			Channel::Manager { member_channels, .. } => {
@@ -210,12 +219,15 @@ impl MPEState {
 			_ => None,
 		}
 	}
+	/// Returns a slice containing the member channels of a given zone.
 	pub fn zone_member_channels(&self, zone: &Zone) -> Option<&[Channel]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
+	/// Returns a mutable slice containing the member channels of a given zone.
 	pub fn zone_member_channels_mut(&mut self, zone: &Zone) -> Option<&mut [Channel]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
+	/// Returns a range containing the indexes of all channels of a given zone.
 	pub fn zone_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
 		match self.channels[zone.manager_channel()] {
 			Channel::Manager { member_channels, .. } => {
@@ -225,32 +237,41 @@ impl MPEState {
 			_ => None,
 		}
 	}
+	/// Returns a slice containing the all channels of a given zone.
 	pub fn zone_channels(&self, zone: &Zone) -> Option<&[Channel]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
+	/// Returns a mutable slice containing the all channels of a given zone.
 	pub fn zone_channels_mut(&mut self, zone: &Zone) -> Option<&mut [Channel]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
+	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
 	fn compute_range(zone: &Zone, range: Range<usize>) -> Range<usize> {
 		let manager_index = zone.manager_channel();
 		let start = range.start.abs_diff(manager_index);
 		let end = range.end.abs_diff(manager_index);
 		if matches!(zone, Zone::Lower) { start..end } else { (end + 1)..(start + 1) }
 	}
+	/// Returns a slice of channels, allowing the upper zone to be zero indexed.
 	pub fn zone_slice(&self, zone: &Zone, range: Range<usize>) -> &[Channel] {
 		&self.channels[Self::compute_range(zone, range)]
 	}
+	/// Returns a mutable slice of channels, allowing the upper zone to be zero indexed.
 	pub fn zone_slice_mut(&mut self, zone: &Zone, range: Range<usize>) -> &mut [Channel] {
 		&mut self.channels[Self::compute_range(zone, range)]
 	}
 
 	// channel methods
+	/// Return the zone to which the given channel belongs, None if it doesn't belong to a zone.
 	fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
 			.find(|z| self.zone_channel_range(&z).map_or(false, |r| r.contains(&channel)))
 			.copied()
 	}
+	/// Sets pitch bend sensitivity for a given channel, implementing MIDI 1.0 compatibility.
+	/// The MPE specification requires MPE receivers to apply the same pitch bend sensitivity
+	/// to all member channels when it is changed on a single channel.
 	pub fn set_pitch_bend_sensitivity(&mut self, channel: usize, pitch_bend_sensitivity: u8) {
 		let zone = self.zone_by_channel(&channel);
 		match &mut self.channels[channel] {
@@ -270,6 +291,7 @@ impl MPEState {
 			},
 		}
 	}
+	/// Returns the channel for the given channel index.
 	pub fn get_channel(&self, channel: usize) -> Option<&MIDIChannel> {
 		self.channels.get(channel).map(|c| match c {
 			Channel::Conventional { channel }
