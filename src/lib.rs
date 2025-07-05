@@ -300,7 +300,7 @@ impl MPEState {
             .copied()
     }
     pub fn set_pitch_bend_sensitivity(&mut self, channel: usize, pitch_bend_sensitivity: u8) {
-        let zone = self.zone_by_channel(&channel).unwrap();
+        let zone = self.zone_by_channel(&channel);
         match &mut self.channels[channel] {
             Channel::Manager { channel, .. } | Channel::Conventional { channel } => {
                 channel.pitch_bend_sensitivity = pitch_bend_sensitivity;
@@ -308,7 +308,7 @@ impl MPEState {
             Channel::Member { .. } => {
                 // changing a single member channel's pitch bend sensitivity
                 // should be reflected to all member channels of the zone
-                self.zone_member_channels_mut(&zone)
+                self.zone_member_channels_mut(&zone.unwrap())
                     .unwrap()
                     .iter_mut()
                     .for_each(|channel| {
