@@ -319,4 +319,11 @@ impl MPEState {
             }
         }
     }
+    pub fn get_channel(&self, channel: usize) -> Option<&MIDIChannel> {
+        self.channels.get(channel).map(|c| match c {
+            Channel::Conventional { channel }
+            | Channel::Manager { channel, .. }
+            | Channel::Member { channel } => channel,
+        })
+    }
 }
