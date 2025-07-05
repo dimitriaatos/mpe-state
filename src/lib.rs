@@ -18,15 +18,12 @@ pub enum Zone {
 }
 
 impl Zone {
-    pub fn new(manager_channel: u8) -> Option<Self> {
+    pub fn new(manager_channel: usize) -> Option<Self> {
         match manager_channel {
-            1 => Some(Self::Lower),
-            16 => Some(Self::Upper),
+            0 => Some(Self::Lower),
+            15 => Some(Self::Upper),
             _ => None,
         }
-    }
-    pub fn new_by_index(&self, manager_channel_index: u8) -> Option<Self> {
-        Self::new(manager_channel_index + 1)
     }
     fn get_other(&self) -> Self {
         match self {
@@ -34,24 +31,18 @@ impl Zone {
             Self::Upper => Self::Lower,
         }
     }
-    pub fn get_by_manager(&self, manager: u8) -> Option<Zone> {
+    pub fn get_by_manager(&self, manager: usize) -> Option<Zone> {
         match manager {
-            1 => Some(Self::Lower),
-            16 => Some(Self::Upper),
+            0 => Some(Self::Lower),
+            15 => Some(Self::Upper),
             _ => None,
         }
     }
-    pub fn get_by_manager_index(&self, index: u8) -> Option<Zone> {
-        self.get_by_manager(index + 1)
-    }
-    pub fn manager_channel(&self) -> u8 {
+    pub fn manager_channel(&self) -> usize {
         match self {
-            Self::Lower => 1,
-            Self::Upper => 16,
+            Self::Lower => 0,
+            Self::Upper => 15,
         }
-    }
-    pub fn manager_index(&self) -> usize {
-        self.manager_channel() as usize - 1
     }
 }
 
@@ -151,7 +142,7 @@ impl MPEState {
         }
     }
     pub fn config(&mut self, zone: &Zone, member_channels: u8) {
-        let manager_index = zone.manager_index();
+        let manager_index = zone.manager_channel();
 
         let prev_member_channels: u8 = match self.channels[manager_index] {
             Channel::Manager {
@@ -180,7 +171,8 @@ impl MPEState {
                     } => *member_channels = new_member_channels as u8,
                     // if the zone wasn't enabled, creating a manager channel.
                     _ => {
-                        self.channels[zone.manager_index()] = Channel::new_manager(member_channels)
+                        self.channels[zone.manager_channel()] =
+                            Channel::new_manager(member_channels)
                     }
                 }
                 // Initializing only the added member channels
@@ -196,11 +188,11 @@ impl MPEState {
                     self.zone_channels(&zone.get_other()).map_or(0, |c| c.len());
                 if let Channel::Manager {
                     member_channels, ..
-                } = &mut self.channels[zone.get_other().manager_index()]
+                } = &mut self.channels[zone.get_other().manager_channel()]
                 {
                     match 16 - zone_channels {
                         1 => {
-                            self.channels[zone.get_other().manager_index()] =
+                            self.channels[zone.get_other().manager_channel()] =
                                 Channel::new_conventional();
                         }
                         remaining_channels if other_zone_channels > remaining_channels => {
@@ -237,7 +229,7 @@ impl MPEState {
 
     // Zone methods
     pub fn zone_member_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
-        match self.channels[zone.manager_index()] {
+        match self.channels[zone.manager_channel()] {
             Channel::Manager {
                 member_channels, ..
             } => {
@@ -259,7 +251,7 @@ impl MPEState {
             .map_or(None, |range| Some(&mut self.channels[range]))
     }
     pub fn zone_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
-        match self.channels[zone.manager_index()] {
+        match self.channels[zone.manager_channel()] {
             Channel::Manager {
                 member_channels, ..
             } => {
@@ -281,7 +273,7 @@ impl MPEState {
             .map_or(None, |range| Some(&mut self.channels[range]))
     }
     fn compute_range(zone: &Zone, range: Range<usize>) -> Range<usize> {
-        let manager_index = zone.manager_index();
+        let manager_index = zone.manager_channel();
         let start = range.start.abs_diff(manager_index);
         let end = range.end.abs_diff(manager_index);
         if matches!(zone, Zone::Lower) {
@@ -298,19 +290,18 @@ impl MPEState {
     }
 
     // channel methods
-    fn zone_by_channel(&self, channel: &u8) -> Option<Zone> {
-        let index = (channel - 1) as usize;
+    fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
         [Zone::Lower, Zone::Upper]
             .iter()
             .find(|z| {
                 self.zone_channel_range(&z)
-                    .map_or(false, |r| r.contains(&index))
+                    .map_or(false, |r| r.contains(&channel))
             })
             .copied()
     }
-    pub fn set_pitch_bend_sensitivity(&mut self, channel: u8, pitch_bend_sensitivity: u8) {
+    pub fn set_pitch_bend_sensitivity(&mut self, channel: usize, pitch_bend_sensitivity: u8) {
         let zone = self.zone_by_channel(&channel).unwrap();
-        match &mut self.channels[channel as usize - 1] {
+        match &mut self.channels[channel] {
             Channel::Manager { channel, .. } | Channel::Conventional { channel } => {
                 channel.pitch_bend_sensitivity = pitch_bend_sensitivity;
             }

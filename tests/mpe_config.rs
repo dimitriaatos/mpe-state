@@ -26,7 +26,7 @@ fn zone_override() {
     //                                no room for member channels
     state.config(&Zone::Lower, 14);
     assert!(matches!(
-        state.channels[Zone::Upper.manager_index()],
+        state.channels[Zone::Upper.manager_channel()],
         Channel::Conventional { .. }
     ))
 }
