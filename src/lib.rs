@@ -277,4 +277,7 @@ impl MPEState {
 			| Channel::Member { channel } => channel,
 		})
 	}
+	// pub fn add_note(&mut self, voice_allocation:){
+	// self.channels
+	// }
 }
