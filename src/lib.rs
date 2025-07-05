@@ -124,7 +124,7 @@ impl MPEState {
 	}
 	/// Configures the member channels of an MPE zone.
 	/// Zero member channels disable the zone.
-	pub fn config(&mut self, zone: &Zone, member_channels: u8) {
+	pub fn config(&mut self, zone: Zone, member_channels: u8) {
 		let manager_index = zone.manager_channel();
 
 		let prev_member_channels: u8 = match self.channels[manager_index] {
@@ -164,7 +164,7 @@ impl MPEState {
 
 				let zone_channels = self.zone_channels(zone).map_or(0, |c| c.len());
 				let other_zone_channels =
-					self.zone_channels(&zone.get_other()).map_or(0, |c| c.len());
+					self.zone_channels(zone.get_other()).map_or(0, |c| c.len());
 				if let Channel::Manager { member_channels, .. } =
 					&mut self.channels[zone.get_other().manager_channel()]
 				{
@@ -207,7 +207,7 @@ impl MPEState {
 	// Zone methods
 
 	/// Returns a range containing the indexes of a given zone's member channels.
-	pub fn zone_member_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
+	pub fn zone_member_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
 		match self.channels[zone.manager_channel()] {
 			Channel::Manager { member_channels, .. } => {
 				let manager_offset = 1;
@@ -220,15 +220,15 @@ impl MPEState {
 		}
 	}
 	/// Returns a slice containing the member channels of a given zone.
-	pub fn zone_member_channels(&self, zone: &Zone) -> Option<&[Channel]> {
+	pub fn zone_member_channels(&self, zone: Zone) -> Option<&[Channel]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
 	/// Returns a mutable slice containing the member channels of a given zone.
-	pub fn zone_member_channels_mut(&mut self, zone: &Zone) -> Option<&mut [Channel]> {
+	pub fn zone_member_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
 	/// Returns a range containing the indexes of all channels of a given zone.
-	pub fn zone_channel_range(&self, zone: &Zone) -> Option<Range<usize>> {
+	pub fn zone_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
 		match self.channels[zone.manager_channel()] {
 			Channel::Manager { member_channels, .. } => {
 				let manager_offset = 1;
@@ -238,26 +238,26 @@ impl MPEState {
 		}
 	}
 	/// Returns a slice containing the all channels of a given zone.
-	pub fn zone_channels(&self, zone: &Zone) -> Option<&[Channel]> {
+	pub fn zone_channels(&self, zone: Zone) -> Option<&[Channel]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
 	/// Returns a mutable slice containing the all channels of a given zone.
-	pub fn zone_channels_mut(&mut self, zone: &Zone) -> Option<&mut [Channel]> {
+	pub fn zone_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
 	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
-	fn compute_range(zone: &Zone, range: Range<usize>) -> Range<usize> {
+	fn compute_range(zone: Zone, range: Range<usize>) -> Range<usize> {
 		let manager_index = zone.manager_channel();
 		let start = range.start.abs_diff(manager_index);
 		let end = range.end.abs_diff(manager_index);
 		if matches!(zone, Zone::Lower) { start..end } else { (end + 1)..(start + 1) }
 	}
 	/// Returns a slice of channels, allowing the upper zone to be zero indexed.
-	pub fn zone_slice(&self, zone: &Zone, range: Range<usize>) -> &[Channel] {
+	pub fn zone_slice(&self, zone: Zone, range: Range<usize>) -> &[Channel] {
 		&self.channels[Self::compute_range(zone, range)]
 	}
 	/// Returns a mutable slice of channels, allowing the upper zone to be zero indexed.
-	pub fn zone_slice_mut(&mut self, zone: &Zone, range: Range<usize>) -> &mut [Channel] {
+	pub fn zone_slice_mut(&mut self, zone: Zone, range: Range<usize>) -> &mut [Channel] {
 		&mut self.channels[Self::compute_range(zone, range)]
 	}
 
@@ -266,7 +266,7 @@ impl MPEState {
 	fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
-			.find(|z| self.zone_channel_range(&z).map_or(false, |r| r.contains(&channel)))
+			.find(|z| self.zone_channel_range(**z).map_or(false, |r| r.contains(&channel)))
 			.copied()
 	}
 	/// Sets pitch bend sensitivity for a given channel, implementing MIDI 1.0 compatibility.
@@ -281,7 +281,7 @@ impl MPEState {
 			Channel::Member { .. } => {
 				// changing a single member channel's pitch bend sensitivity
 				// should be reflected to all member channels of the zone
-				self.zone_member_channels_mut(&zone.unwrap()).unwrap().iter_mut().for_each(
+				self.zone_member_channels_mut(zone.unwrap()).unwrap().iter_mut().for_each(
 					|channel| {
 						if let Channel::Member { channel } = channel {
 							channel.pitch_bend_sensitivity = pitch_bend_sensitivity;

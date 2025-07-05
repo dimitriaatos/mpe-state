@@ -4,8 +4,8 @@ use mpe_state::{MPEState, Zone};
 fn member_channel_pitch_bend_sensitivity() {
 	let mut mpe = MPEState::new();
 	// config zones so channel 7 remains conventional
-	mpe.config(&Zone::Lower, 6);
-	mpe.config(&Zone::Upper, 7);
+	mpe.config(Zone::Lower, 6);
+	mpe.config(Zone::Upper, 7);
 	// manager channel
 	mpe.set_pitch_bend_sensitivity(0, 1);
 	// conventional channel
