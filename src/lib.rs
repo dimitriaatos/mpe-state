@@ -60,7 +60,7 @@ pub struct MIDIChannel {
 	pub pitch_bend: f32,
 	pub channel_pressure: f32,
 	pub timbre_control: f32,
-	pub notes: heapless::Vec<[u8; 128], 128>,
+	pub notes: heapless::Vec<[u8; 2], 128>,
 }
 
 impl Default for MIDIChannel {
