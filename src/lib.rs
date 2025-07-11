@@ -299,6 +299,13 @@ impl MPEState {
 			| Channel::Member { channel } => channel,
 		})
 	}
+	pub fn get_channel_mut(&mut self, channel: usize) -> &mut MIDIChannel {
+		match self.channels.get_mut(channel).unwrap() {
+			Channel::Conventional { channel }
+			| Channel::Manager { channel, .. }
+			| Channel::Member { channel } => channel,
+		}
+	}
 	// pub fn add_note(&mut self, voice_allocation:){
 	// self.channels
 	// }
