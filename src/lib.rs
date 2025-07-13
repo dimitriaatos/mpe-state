@@ -263,7 +263,7 @@ impl MPEState {
 
 	// channel methods
 	/// Return the zone to which the given channel belongs, None if it doesn't belong to a zone.
-	fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
+	pub fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
 			.find(|z| self.zone_channel_range(**z).map_or(false, |r| r.contains(&channel)))
