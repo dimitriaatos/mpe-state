@@ -306,6 +306,15 @@ impl MPEState {
 			| Channel::Member { channel } => channel,
 		}
 	}
+	pub fn unoccupied_channel(&self, zone: Zone) -> Option<usize> {
+		match self.zone_member_channels(zone) {
+			None => None,
+			Some(channels) => channels.iter().position(|c| match c {
+				Channel::Member { channel } => channel.notes.len() == 0,
+				_ => false,
+			}),
+		}
+	}
 	// pub fn add_note(&mut self, voice_allocation:){
 	// self.channels
 	// }
