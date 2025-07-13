@@ -263,7 +263,7 @@ impl MPEState {
 
 	// channel methods
 	/// Return the zone to which the given channel belongs, None if it doesn't belong to a zone.
-	pub fn zone_by_channel(&self, channel: &usize) -> Option<Zone> {
+	pub fn zone_by_channel(&self, channel: usize) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
 			.find(|z| self.zone_channel_range(**z).map_or(false, |r| r.contains(&channel)))
@@ -273,7 +273,7 @@ impl MPEState {
 	/// The MPE specification requires MPE receivers to apply the same pitch bend sensitivity
 	/// to all member channels when it is changed on a single channel.
 	pub fn set_pitch_bend_sensitivity(&mut self, channel: usize, pitch_bend_sensitivity: u8) {
-		let zone = self.zone_by_channel(&channel);
+		let zone = self.zone_by_channel(channel);
 		match &mut self.channels[channel] {
 			Channel::Manager { channel, .. } | Channel::Conventional { channel } => {
 				channel.pitch_bend_sensitivity = pitch_bend_sensitivity;
