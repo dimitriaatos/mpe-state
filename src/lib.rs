@@ -55,15 +55,15 @@ pub enum ChannelType {
 }
 
 #[derive(Clone, Debug)]
-pub struct MIDIChannel {
+pub struct MIDIChannel<N> {
 	pitch_bend_sensitivity: u8,
 	pub pitch_bend: f32,
 	pub channel_pressure: f32,
 	pub timbre_control: f32,
-	pub notes: heapless::Vec<[u8; 2], 128>,
+	pub notes: heapless::Vec<N, 128>,
 }
 
-impl Default for MIDIChannel {
+impl<N> Default for MIDIChannel<N> {
 	fn default() -> Self {
 		Self {
 			pitch_bend_sensitivity: 2,
@@ -75,7 +75,7 @@ impl Default for MIDIChannel {
 	}
 }
 
-impl MIDIChannel {
+impl<N> MIDIChannel<N> {
 	pub fn new(channel_type: ChannelType) -> Self {
 		match channel_type {
 			ChannelType::Member => Self { pitch_bend_sensitivity: 48, ..Default::default() },
@@ -88,39 +88,42 @@ impl MIDIChannel {
 }
 
 #[derive(Clone, Debug)]
-pub enum Channel {
-	Manager { member_channels: u8, channel: MIDIChannel },
-	Member { channel: MIDIChannel },
-	Conventional { channel: MIDIChannel },
+pub enum Channel<N> {
+	Manager { member_channels: u8, channel: MIDIChannel<N> },
+	Member { channel: MIDIChannel<N> },
+	Conventional { channel: MIDIChannel<N> },
 }
 
-impl Channel {
+impl<N> Channel<N> {
 	pub fn new_member() -> Self {
-		Self::Member { channel: MIDIChannel::new(ChannelType::Member) }
+		Self::Member { channel: MIDIChannel::<N>::new(ChannelType::Member) }
 	}
 	pub fn new_conventional() -> Self {
-		Self::Conventional { channel: MIDIChannel::new(ChannelType::Conventional) }
+		Self::Conventional { channel: MIDIChannel::<N>::new(ChannelType::Conventional) }
 	}
 	pub fn new_manager(member_channels: u8) -> Self {
-		Self::Manager { channel: MIDIChannel::new(ChannelType::Manager), member_channels }
+		Self::Manager { channel: MIDIChannel::<N>::new(ChannelType::Manager), member_channels }
 	}
 }
 
-pub struct MPEState {
-	pub channels: [Channel; 16],
+pub struct MPEState<N> {
+	pub channels: [Channel<N>; 16],
 }
 
-impl Default for MPEState {
+impl<N> Default for MPEState<N> {
 	fn default() -> Self {
 		Self { channels: core::array::from_fn(|_| Channel::new_conventional()) }
 	}
 }
 
-impl MPEState {
+impl<N> MPEState<N>
+where
+	N: Clone,
+{
 	/// Creates a new instance of MPEState.
 	/// MPE status is disabled and all channels are set to conventional.
 	pub fn new() -> Self {
-		Self { channels: core::array::from_fn(|_| Channel::new_conventional()) }
+		Self { channels: core::array::from_fn(|_| Channel::<N>::new_conventional()) }
 	}
 	/// Configures the member channels of an MPE zone.
 	/// Zero member channels disable the zone.
@@ -137,7 +140,7 @@ impl MPEState {
 			0 => match self.channels[manager_index] {
 				// and the zone was enabled, set the manager and all member channels to conventional.
 				Channel::Manager { .. } => {
-					self.zone_channels_mut(zone).unwrap().fill(Channel::new_conventional());
+					self.zone_channels_mut(zone).unwrap().fill(Channel::<N>::new_conventional());
 				},
 				_ => {},
 			},
@@ -220,11 +223,11 @@ impl MPEState {
 		}
 	}
 	/// Returns a slice containing the member channels of a given zone.
-	pub fn zone_member_channels(&self, zone: Zone) -> Option<&[Channel]> {
+	pub fn zone_member_channels(&self, zone: Zone) -> Option<&[Channel<N>]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
 	/// Returns a mutable slice containing the member channels of a given zone.
-	pub fn zone_member_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel]> {
+	pub fn zone_member_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<N>]> {
 		self.zone_member_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
 	/// Returns a range containing the indexes of all channels of a given zone.
@@ -238,11 +241,11 @@ impl MPEState {
 		}
 	}
 	/// Returns a slice containing the all channels of a given zone.
-	pub fn zone_channels(&self, zone: Zone) -> Option<&[Channel]> {
+	pub fn zone_channels(&self, zone: Zone) -> Option<&[Channel<N>]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
 	}
 	/// Returns a mutable slice containing the all channels of a given zone.
-	pub fn zone_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel]> {
+	pub fn zone_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<N>]> {
 		self.zone_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
 	}
 	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
@@ -253,11 +256,11 @@ impl MPEState {
 		if matches!(zone, Zone::Lower) { start..end } else { (end + 1)..(start + 1) }
 	}
 	/// Returns a slice of channels, allowing the upper zone to be zero indexed.
-	pub fn zone_slice(&self, zone: Zone, range: Range<usize>) -> &[Channel] {
+	pub fn zone_slice(&self, zone: Zone, range: Range<usize>) -> &[Channel<N>] {
 		&self.channels[Self::compute_range(zone, range)]
 	}
 	/// Returns a mutable slice of channels, allowing the upper zone to be zero indexed.
-	pub fn zone_slice_mut(&mut self, zone: Zone, range: Range<usize>) -> &mut [Channel] {
+	pub fn zone_slice_mut(&mut self, zone: Zone, range: Range<usize>) -> &mut [Channel<N>] {
 		&mut self.channels[Self::compute_range(zone, range)]
 	}
 
@@ -292,14 +295,14 @@ impl MPEState {
 		}
 	}
 	/// Returns the channel for the given channel index.
-	pub fn get_channel(&self, channel: usize) -> Option<&MIDIChannel> {
+	pub fn get_channel(&self, channel: usize) -> Option<&MIDIChannel<N>> {
 		self.channels.get(channel).map(|c| match c {
 			Channel::Conventional { channel }
 			| Channel::Manager { channel, .. }
 			| Channel::Member { channel } => channel,
 		})
 	}
-	pub fn get_channel_mut(&mut self, channel: usize) -> &mut MIDIChannel {
+	pub fn get_channel_mut(&mut self, channel: usize) -> &mut MIDIChannel<N> {
 		match self.channels.get_mut(channel).unwrap() {
 			Channel::Conventional { channel }
 			| Channel::Manager { channel, .. }
