@@ -1,10 +1,10 @@
-use mpe_state::{Channel, MPEState, Zone};
+use mpe_state::{Channel, MPEState, Zone, note_collection::default::DefaultNoteCollectionWith};
 
 type Note = [u8; 2];
 
 #[test]
 fn zone_overlap() {
-	let mut state = MPEState::<Note>::new();
+	let mut state = MPEState::<DefaultNoteCollectionWith<Note>>::new();
 	// [M L L L L L L L L L L L L L L L]
 	// [1 --------------15-------------]
 	state.config(Zone::Lower, 15);
@@ -16,7 +16,7 @@ fn zone_overlap() {
 
 #[test]
 fn zone_override() {
-	let mut state = MPEState::<Note>::new();
+	let mut state = MPEState::<DefaultNoteCollectionWith<Note>>::new();
 	state.config(Zone::Lower, 10);
 	state.config(Zone::Upper, 4);
 	// 14 member channels (15 zone channels) leave 1 unused channel
@@ -32,7 +32,7 @@ fn zone_override() {
 
 #[test]
 fn mpe_deactivation() {
-	let mut state = MPEState::<Note>::new();
+	let mut state = MPEState::<DefaultNoteCollectionWith<Note>>::new();
 	state.config(Zone::Lower, 10);
 	state.config(Zone::Upper, 4);
 	assert_eq!(state.active(), true);

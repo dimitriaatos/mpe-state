@@ -1,14 +1,8 @@
-use mpe_state::{MPEState, Zone};
-
-#[derive(Clone)]
-struct Note {
-	pub pitch: u8,
-	pub velocity: u8,
-}
+use mpe_state::{MPEState, Zone, note_collection::default::DefaultNoteCollection};
 
 #[test]
 fn member_channel_pitch_bend_sensitivity() {
-	let mut mpe = MPEState::<Note>::new();
+	let mut mpe: MPEState<DefaultNoteCollection> = MPEState::new();
 	// config zones so channel 7 remains conventional
 	mpe.config(Zone::Lower, 6);
 	mpe.config(Zone::Upper, 7);
