@@ -27,7 +27,10 @@ fn zone_override() {
 	//                                can't remain manager
 	//                                no room for member channels
 	state.config(Zone::Lower, 14);
-	assert!(matches!(state.channels[Zone::Upper.manager_channel()], Channel::Conventional { .. }))
+	assert!(matches!(
+		state.channels[Zone::Upper.manager_channel() as usize],
+		Channel::Conventional { .. }
+	))
 }
 
 #[test]

@@ -1,6 +1,6 @@
 //! # mpe-state - State management for MIDI Polyphonic Expression
 
-#![no_std]
+// #![no_std]
 use core::ops::Range;
 use note_collection::{NoteCollection, default::DefaultNoteCollection};
 pub mod note_collection;
@@ -22,7 +22,7 @@ pub enum Zone {
 }
 
 impl Zone {
-	pub fn new(manager_channel: usize) -> Option<Self> {
+	pub fn new(manager_channel: u8) -> Option<Self> {
 		match manager_channel {
 			0 => Some(Self::Lower),
 			15 => Some(Self::Upper),
@@ -35,14 +35,14 @@ impl Zone {
 			Self::Upper => Self::Lower,
 		}
 	}
-	pub fn get_by_manager(&self, manager: usize) -> Option<Zone> {
+	pub fn get_by_manager(&self, manager: u8) -> Option<Zone> {
 		match manager {
 			0 => Some(Self::Lower),
 			15 => Some(Self::Upper),
 			_ => None,
 		}
 	}
-	pub fn manager_channel(&self) -> usize {
+	pub fn manager_channel(&self) -> u8 {
 		match self {
 			Self::Lower => 0,
 			Self::Upper => 15,
@@ -153,14 +153,14 @@ where
 	pub fn config(&mut self, zone: Zone, member_channels: u8) {
 		let manager_index = zone.manager_channel();
 
-		let prev_member_channels: u8 = match self.channels[manager_index] {
+		let prev_member_channels: u8 = match self.channels[manager_index as usize] {
 			Channel::Manager { member_channels, .. } => member_channels,
 			_ => 0,
 		};
 
 		match member_channels {
 			// If the new number of member channels is zero
-			0 => match self.channels[manager_index] {
+			0 => match self.channels[manager_index as usize] {
 				// and the zone was enabled, set the manager and all member channels to conventional.
 				Channel::Manager { .. } => {
 					self.zone_channels_mut(zone).unwrap().fill(Channel::<C>::new_conventional());
@@ -169,14 +169,14 @@ where
 			},
 			// If the new number of member channels is greater that previously,
 			new_member_channels if new_member_channels > prev_member_channels => {
-				match &mut self.channels[manager_index] {
+				match &mut self.channels[manager_index as usize] {
 					// and the zone was enabled, increase the member_channels property,
 					Channel::Manager { member_channels, .. } => {
-						*member_channels = new_member_channels as u8
+						*member_channels = new_member_channels
 					},
 					// if the zone wasn't enabled, creating a manager channel.
 					_ => {
-						self.channels[zone.manager_channel()] =
+						self.channels[zone.manager_channel() as usize] =
 							Channel::new_manager(member_channels)
 					},
 				}
@@ -192,11 +192,11 @@ where
 				let other_zone_channels =
 					self.zone_channels(zone.get_other()).map_or(0, |c| c.len());
 				if let Channel::Manager { member_channels, .. } =
-					&mut self.channels[zone.get_other().manager_channel()]
+					&mut self.channels[zone.get_other().manager_channel() as usize]
 				{
 					match 16 - zone_channels {
 						1 => {
-							self.channels[zone.get_other().manager_channel()] =
+							self.channels[zone.get_other().manager_channel() as usize] =
 								Channel::new_conventional();
 						},
 						remaining_channels if other_zone_channels > remaining_channels => {
@@ -209,7 +209,8 @@ where
 			// If the new number of member channels is less than previously,
 			// (this means that the zone was already enabled with more member channels)
 			new_member_channels if new_member_channels < prev_member_channels => {
-				if let Channel::Manager { member_channels, .. } = &mut self.channels[manager_index]
+				if let Channel::Manager { member_channels, .. } =
+					&mut self.channels[manager_index as usize]
 				{
 					// Decreasing the member_channels property
 					*member_channels = new_member_channels;
@@ -234,7 +235,7 @@ where
 
 	/// Returns a range containing the indexes of a given zone's member channels.
 	pub fn zone_member_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
-		match self.channels[zone.manager_channel()] {
+		match self.channels[zone.manager_channel() as usize] {
 			Channel::Manager { member_channels, .. } => {
 				let manager_offset = 1;
 				Some(Self::compute_range(
@@ -255,7 +256,7 @@ where
 	}
 	/// Returns a range containing the indexes of all channels of a given zone.
 	pub fn zone_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
-		match self.channels[zone.manager_channel()] {
+		match self.channels[zone.manager_channel() as usize] {
 			Channel::Manager { member_channels, .. } => {
 				let manager_offset = 1;
 				Some(Self::compute_range(zone, 0..(member_channels as usize + manager_offset)))
@@ -274,8 +275,8 @@ where
 	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
 	fn compute_range(zone: Zone, range: Range<usize>) -> Range<usize> {
 		let manager_index = zone.manager_channel();
-		let start = range.start.abs_diff(manager_index);
-		let end = range.end.abs_diff(manager_index);
+		let start = range.start.abs_diff(manager_index as usize);
+		let end = range.end.abs_diff(manager_index as usize);
 		if matches!(zone, Zone::Lower) { start..end } else { (end + 1)..(start + 1) }
 	}
 	/// Returns a slice of channels, allowing the upper zone to be zero indexed.
@@ -289,18 +290,20 @@ where
 
 	// channel methods
 	/// Return the zone to which the given channel belongs, None if it doesn't belong to a zone.
-	pub fn zone_by_channel(&self, channel: usize) -> Option<Zone> {
+	pub fn zone_by_channel(&self, channel: u8) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
-			.find(|z| self.zone_channel_range(**z).map_or(false, |r| r.contains(&channel)))
+			.find(|z| {
+				self.zone_channel_range(**z).map_or(false, |r| r.contains(&(channel as usize)))
+			})
 			.copied()
 	}
 	/// Sets pitch bend sensitivity for a given channel, implementing MIDI 1.0 compatibility.
 	/// The MPE specification requires MPE receivers to apply the same pitch bend sensitivity
 	/// to all member channels when it is changed on a single channel.
-	pub fn set_pitch_bend_sensitivity(&mut self, channel: usize, pitch_bend_sensitivity: u8) {
+	pub fn set_pitch_bend_sensitivity(&mut self, channel: u8, pitch_bend_sensitivity: u8) {
 		let zone = self.zone_by_channel(channel);
-		match &mut self.channels[channel] {
+		match &mut self.channels[channel as usize] {
 			Channel::Manager { channel, .. } | Channel::Conventional { channel } => {
 				channel.pitch_bend_sensitivity = pitch_bend_sensitivity;
 			},
@@ -318,30 +321,31 @@ where
 		}
 	}
 	/// Returns the channel for the given channel index.
-	pub fn get_channel(&self, channel: usize) -> Option<&MIDIChannel<C>> {
-		self.channels.get(channel).map(|c| match c {
+	pub fn get_channel(&self, channel: u8) -> Option<&MIDIChannel<C>> {
+		self.channels.get(channel as usize).map(|c| match c {
 			Channel::Conventional { channel }
 			| Channel::Manager { channel, .. }
 			| Channel::Member { channel } => channel,
 		})
 	}
-	pub fn get_channel_mut(&mut self, channel: usize) -> &mut MIDIChannel<C> {
-		match self.channels.get_mut(channel).unwrap() {
+	pub fn get_channel_mut(&mut self, channel: u8) -> &mut MIDIChannel<C> {
+		match self.channels.get_mut(channel as usize).unwrap() {
 			Channel::Conventional { channel }
 			| Channel::Manager { channel, .. }
 			| Channel::Member { channel } => channel,
 		}
 	}
-	pub fn unoccupied_channel(&self, zone: Zone) -> Option<usize> {
-		match self.zone_member_channels(zone) {
+	pub fn unoccupied_channel(&self, zone: Zone) -> Option<u8> {
+		match self.zone_member_channel_range(zone) {
 			None => None,
-			Some(channels) => channels.iter().position(|c| match c {
-				Channel::Member { channel } => channel.notes.is_empty(),
-				_ => false,
-			}),
+			Some(range) => {
+				let mut r = range.into_iter();
+				r.find(|&i| {
+					let ch = i as u8;
+					self.get_channel(ch).unwrap().notes.is_empty()
+				})
+				.map(|i| i as u8)
+			},
 		}
 	}
-	// pub fn add_note(&mut self, voice_allocation:){
-	// self.channels
-	// }
 }
