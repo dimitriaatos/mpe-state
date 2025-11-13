@@ -160,12 +160,11 @@ where
 
 		match member_channels {
 			// If the new number of member channels is zero
-			0 => match self.channels[manager_index as usize] {
-				// and the zone was enabled, set the manager and all member channels to conventional.
-				Channel::Manager { .. } => {
+			0 => {
+				if let Channel::Manager { .. } = self.channels[manager_index as usize] {
+					// and the zone was enabled, set the manager and all member channels to conventional.
 					self.zone_channels_mut(zone).unwrap().fill(Channel::<C>::new_conventional());
-				},
-				_ => {},
+				}
 			},
 			// If the new number of member channels is greater that previously,
 			new_member_channels if new_member_channels > prev_member_channels => {
@@ -305,7 +304,7 @@ where
 		let zone = self.zone_by_channel(channel);
 		match &mut self.channels[channel as usize] {
 			Channel::Manager { channel, .. } | Channel::Conventional { channel } => {
-				channel.pitch_bend_sensitivity = pitch_bend_sensitivity;
+				channel.pitch_bend_sensitivity = pitch_bend_sensitivity.max(2);
 			},
 			Channel::Member { .. } => {
 				// changing a single member channel's pitch bend sensitivity
