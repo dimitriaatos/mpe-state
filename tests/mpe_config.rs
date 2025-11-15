@@ -38,8 +38,8 @@ fn mpe_deactivation() {
 	let mut state = MPEState::<DefaultNoteCollectionWith<Note>>::new();
 	state.config(Zone::Lower, 10);
 	state.config(Zone::Upper, 4);
-	assert_eq!(state.active(), true);
+	assert!(state.active());
 	state.config(Zone::Lower, 0);
 	state.config(Zone::Upper, 0);
-	assert_eq!(state.active(), false);
+	assert!(!state.active());
 }

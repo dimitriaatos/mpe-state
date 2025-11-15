@@ -247,11 +247,11 @@ where
 	}
 	/// Returns a slice containing the member channels of a given zone.
 	pub fn zone_member_channels(&self, zone: Zone) -> Option<&[Channel<C>]> {
-		self.zone_member_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
+		self.zone_member_channel_range(zone).map(|range| &self.channels[range])
 	}
 	/// Returns a mutable slice containing the member channels of a given zone.
 	pub fn zone_member_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<C>]> {
-		self.zone_member_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
+		self.zone_member_channel_range(zone).map(|range| &mut self.channels[range])
 	}
 	/// Returns a range containing the indexes of all channels of a given zone.
 	pub fn zone_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
@@ -265,11 +265,11 @@ where
 	}
 	/// Returns a slice containing the all channels of a given zone.
 	pub fn zone_channels(&self, zone: Zone) -> Option<&[Channel<C>]> {
-		self.zone_channel_range(zone).map_or(None, |range| Some(&self.channels[range]))
+		self.zone_channel_range(zone).map(|range| &self.channels[range])
 	}
 	/// Returns a mutable slice containing the all channels of a given zone.
 	pub fn zone_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<C>]> {
-		self.zone_channel_range(zone).map_or(None, |range| Some(&mut self.channels[range]))
+		self.zone_channel_range(zone).map(|range| &mut self.channels[range])
 	}
 	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
 	fn compute_range(zone: Zone, range: Range<usize>) -> Range<usize> {
@@ -292,9 +292,7 @@ where
 	pub fn zone_by_channel(&self, channel: u8) -> Option<Zone> {
 		[Zone::Lower, Zone::Upper]
 			.iter()
-			.find(|z| {
-				self.zone_channel_range(**z).map_or(false, |r| r.contains(&(channel as usize)))
-			})
+			.find(|z| self.zone_channel_range(**z).is_some_and(|r| r.contains(&(channel as usize))))
 			.copied()
 	}
 	/// Sets pitch bend sensitivity for a given channel, implementing MIDI 1.0 compatibility.
