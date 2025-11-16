@@ -29,12 +29,14 @@ impl Zone {
 			_ => None,
 		}
 	}
+
 	fn get_other(&self) -> Self {
 		match self {
 			Self::Lower => Self::Upper,
 			Self::Upper => Self::Lower,
 		}
 	}
+
 	pub fn get_by_manager(&self, manager: u8) -> Option<Zone> {
 		match manager {
 			0 => Some(Self::Lower),
@@ -42,6 +44,7 @@ impl Zone {
 			_ => None,
 		}
 	}
+
 	pub fn manager_channel(&self) -> u8 {
 		match self {
 			Self::Lower => 0,
@@ -93,6 +96,7 @@ where
 			_ => Self { ..Default::default() },
 		}
 	}
+
 	pub fn pitch_bend_sensitivity(&self) -> u8 {
 		self.pitch_bend_sensitivity
 	}
@@ -115,9 +119,11 @@ where
 	pub fn new_member() -> Self {
 		Self::Member { channel: MIDIChannel::<C>::new(ChannelType::Member) }
 	}
+
 	pub fn new_conventional() -> Self {
 		Self::Conventional { channel: MIDIChannel::<C>::new(ChannelType::Conventional) }
 	}
+
 	pub fn new_manager(member_channels: u8) -> Self {
 		Self::Manager { channel: MIDIChannel::<C>::new(ChannelType::Manager), member_channels }
 	}
@@ -148,6 +154,7 @@ where
 	pub fn new() -> Self {
 		Self { channels: core::array::from_fn(|_| Channel::<C>::new_conventional()) }
 	}
+
 	/// Configures the member channels of an MPE zone.
 	/// Zero member channels disable the zone.
 	pub fn config(&mut self, zone: Zone, member_channels: u8) {
@@ -224,6 +231,7 @@ where
 			_ => {},
 		};
 	}
+
 	/// Returns the status of MPE mode
 	pub fn active(&self) -> bool {
 		matches!(self.channels.first().unwrap(), Channel::Manager { .. })
@@ -245,14 +253,17 @@ where
 			_ => None,
 		}
 	}
+
 	/// Returns a slice containing the member channels of a given zone.
 	pub fn zone_member_channels(&self, zone: Zone) -> Option<&[Channel<C>]> {
 		self.zone_member_channel_range(zone).map(|range| &self.channels[range])
 	}
+
 	/// Returns a mutable slice containing the member channels of a given zone.
 	pub fn zone_member_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<C>]> {
 		self.zone_member_channel_range(zone).map(|range| &mut self.channels[range])
 	}
+
 	/// Returns a range containing the indexes of all channels of a given zone.
 	pub fn zone_channel_range(&self, zone: Zone) -> Option<Range<usize>> {
 		match self.channels[zone.manager_channel() as usize] {
@@ -263,14 +274,17 @@ where
 			_ => None,
 		}
 	}
+
 	/// Returns a slice containing the all channels of a given zone.
 	pub fn zone_channels(&self, zone: Zone) -> Option<&[Channel<C>]> {
 		self.zone_channel_range(zone).map(|range| &self.channels[range])
 	}
+
 	/// Returns a mutable slice containing the all channels of a given zone.
 	pub fn zone_channels_mut(&mut self, zone: Zone) -> Option<&mut [Channel<C>]> {
 		self.zone_channel_range(zone).map(|range| &mut self.channels[range])
 	}
+
 	/// Inverts a range of channel indexes, allowing the upper zone to be zero indexed.
 	fn compute_range(zone: Zone, range: Range<usize>) -> Range<usize> {
 		let manager_index = zone.manager_channel();
@@ -278,10 +292,12 @@ where
 		let end = range.end.abs_diff(manager_index as usize);
 		if matches!(zone, Zone::Lower) { start..end } else { (end + 1)..(start + 1) }
 	}
+
 	/// Returns a slice of channels, allowing the upper zone to be zero indexed.
 	pub fn zone_slice(&self, zone: Zone, range: Range<usize>) -> &[Channel<C>] {
 		&self.channels[Self::compute_range(zone, range)]
 	}
+
 	/// Returns a mutable slice of channels, allowing the upper zone to be zero indexed.
 	pub fn zone_slice_mut(&mut self, zone: Zone, range: Range<usize>) -> &mut [Channel<C>] {
 		&mut self.channels[Self::compute_range(zone, range)]
@@ -295,6 +311,7 @@ where
 			.find(|z| self.zone_channel_range(**z).is_some_and(|r| r.contains(&(channel as usize))))
 			.copied()
 	}
+
 	/// Sets pitch bend sensitivity for a given channel, implementing MIDI 1.0 compatibility.
 	/// The MPE specification requires MPE receivers to apply the same pitch bend sensitivity
 	/// to all member channels when it is changed on a single channel.
@@ -317,6 +334,7 @@ where
 			},
 		}
 	}
+
 	/// Returns the channel for the given channel index.
 	pub fn get_channel(&self, channel: u8) -> Option<&MIDIChannel<C>> {
 		self.channels.get(channel as usize).map(|c| match c {
@@ -325,6 +343,7 @@ where
 			| Channel::Member { channel } => channel,
 		})
 	}
+
 	pub fn get_channel_mut(&mut self, channel: u8) -> &mut MIDIChannel<C> {
 		match self.channels.get_mut(channel as usize).unwrap() {
 			Channel::Conventional { channel }
@@ -332,6 +351,7 @@ where
 			| Channel::Member { channel } => channel,
 		}
 	}
+
 	pub fn unoccupied_channel(&self, zone: Zone) -> Option<u8> {
 		match self.zone_member_channel_range(zone) {
 			None => None,

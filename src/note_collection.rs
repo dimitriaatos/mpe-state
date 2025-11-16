@@ -14,6 +14,7 @@ pub mod default {
 		fn is_empty(&self) -> bool {
 			self.0.is_empty()
 		}
+
 		fn new() -> Self {
 			Self(heapless::Vec::<N, 128>::new())
 		}

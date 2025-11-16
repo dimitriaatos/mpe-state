@@ -7,14 +7,14 @@ fn member_channel_pitch_bend_sensitivity() {
 	mpe.config(Zone::Lower, 6);
 	mpe.config(Zone::Upper, 7);
 	// manager channel
-	mpe.set_pitch_bend_sensitivity(0, 1);
+	mpe.set_pitch_bend_sensitivity(0, 2);
 	// conventional channel
 	mpe.set_pitch_bend_sensitivity(7, 3);
 	// member channel, the sensitivity should be applied
 	// to all member channels of the zone
 	mpe.set_pitch_bend_sensitivity(3, 12);
 	// check manager channel
-	assert_eq!(mpe.get_channel(0).unwrap().pitch_bend_sensitivity(), 1);
+	assert_eq!(mpe.get_channel(0).unwrap().pitch_bend_sensitivity(), 2);
 	// check conventional channel
 	assert_eq!(mpe.get_channel(7).unwrap().pitch_bend_sensitivity(), 3);
 	// check member channel
